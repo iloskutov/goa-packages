@@ -1,0 +1,6 @@
+set depot_user               iloskutov_pixel7
+set versions_from_genode_dir ../genode-pub
+set depot_dir                ../genode-pub/depot
+set public_dir               ../genode-pub/public
+set arch                     arm_v8a
+set sculpt_version           26.05

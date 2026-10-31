@@ -1,0 +1,193 @@
+Goa packages for the Google Pixel 7
+
+This repository holds the components for the Pixel 7 that are built with Goa, and
+describes the depot they are published in. It belongs to three places:
+
+:'repos/pixel' of the Genode tree:
+  drivers, board support, and the session APIs of the drivers
+:'repos/muesli' of the Genode tree:
+  the MüesliOS base system
+:this repository:
+  applications and libraries, built with Goa against the APIs of the tree
+
+The projects use APIs of the tree, so a Genode tree with 'repos/pixel' next to
+this repository is needed to build them. Each directory with a 'version' file is
+a Goa project:
+
+:mesa26:     Mesa with the gallium drivers panfrost and softpipe, its EGL, and
+             libdrm with a back end for the driver 'panthor_gpu', see its README.
+:mesa26_egl: Rendering test for Mesa, without a display.
+
+The other directories:
+
+:depot: The public key and the download location of the depot user.
+
+
+Depot
+~~~~~
+
+The archives are published under the depot user 'iloskutov_pixel7':
+
+:URL:          https://iloskutov.github.io/depot-pixel
+:Fingerprint:  5FE638DC1D398C533B6D09CFD14699FA22B15CAA
+:Architecture: arm_v8a
+
+
+Using the depot in a Genode tree
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The depot tools need the public key and the URL in a repository of the tree, Goa
+needs them in the depot directory. From the Genode directory:
+
+! U=iloskutov_pixel7
+! mkdir -p repos/muesli/sculpt/depot/$U depot/$U
+! cp ../goa-packages/depot/$U/* repos/muesli/sculpt/depot/$U/
+! cp ../goa-packages/depot/$U/* depot/$U/
+
+Then download archives by their versions, together with their dependencies. The
+signatures are checked against the public key:
+
+! tool/depot/download $U/bin/arm_v8a/mesa26/<version>
+
+A run script takes such archives with 'import_from_depot'. Add the user with
+these files by hand: 'goa add-depot-user' fails if the tool 'sq' is missing.
+
+
+Prerequisites for building
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Goa from 'https://github.com/iloskutov/goa', branch 'master', with 'bin/' in the
+  PATH. This is upstream's 'main' with a change for hosts without
+  '/etc/ca-certificates', such as Gentoo.
+
+  ! export PATH=$PATH:<goa>/bin
+
+* The Genode tool chain 25.05 in '/usr/local/genode/tool/25.05'.
+
+* On the host, 'bwrap', 'expect', and 'tclsh', as Goa requires them.
+
+* For 'mesa26', which generates sources at its import, on the host: 'meson',
+  'ninja', 'flex', 'bison', the Python modules 'mako', 'yaml', and 'packaging',
+  LLVM and clang, libclc with SPIR-V, SPIRV-LLVM-Translator, SPIRV-Tools, and
+  SPIRV-Headers. The import runs in Goa's sandbox with the PATH '/usr/bin' and
+  alike, so 'llvm-config' must be there, or in '/usr/lib/llvm/<version>/bin'.
+
+* A Genode tree with 'repos/pixel', and a build directory as described in the
+  README of 'repos/pixel'.
+
+
+Configuration
+~~~~~~~~~~~~~
+
+The file 'goarc' expects the Genode tree next to this repository, in
+'../genode-pub'. Adapt the paths if yours is elsewhere:
+
+! set depot_user               iloskutov_pixel7
+! set versions_from_genode_dir ../genode-pub
+! set depot_dir                ../genode-pub/depot
+! set public_dir               ../genode-pub/public
+! set arch                     arm_v8a
+! set sculpt_version           26.05
+
+The tree and this repository share one depot, so that a run script of the tree
+finds the archives Goa exports. API versions come from the recipes of the tree.
+
+Goa accepts paths outside of the project only if a privileged config allows
+them. Add this line with the absolute path of the tree to '~/goarc':
+
+! lappend allowed_paths <genode>
+
+
+API archives of the tree
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The projects build against API archives that the tree creates. They need the
+ports 'libc', 'stdcxx', and 'zlib'. From the Genode directory:
+
+! tool/ports/prepare_port libc stdcxx zlib
+! U=iloskutov_pixel7/api
+! tool/depot/create $U/base $U/so $U/libc $U/posix $U/stdcxx $U/zlib \
+!                   $U/gpu_session $U/vfs_gpu $U/gpu_panthor
+
+
+Building
+~~~~~~~~
+
+Run Goa from the root of this repository, where it finds the other projects
+and their versions, and name the project with '-C':
+
+! goa build -C mesa26
+
+'mesa26' downloads the archives of Mesa and libdrm at the first build, and checks
+their hashes. The directory 'mesa26/src' is generated from 'mesa26/files' and the
+patches, and is not part of the repository. Change the files there, not in 'src':
+Goa refuses to import over local changes in 'src'.
+
+A library needs a file in 'symbols/'. 'goa extract-abi-symbols' creates it, review
+the result and remove the line that asks for the review.
+
+
+Adding a package to the depot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+First, export the project from the root of this repository, which builds it if
+needed and writes its archives into the depot of the tree:
+
+! goa export -C mesa26
+! goa export -C mesa26_egl
+
+Export a project before building a project that uses its API. A project needs
+the files 'version', 'LICENSE', 'used_apis', and 'artifacts' or 'api'. It names
+APIs as '_/api/<name>'.
+
+Second, sign the archives and their dependencies into 'public/', from the Genode
+directory. This needs the secret key:
+
+! U=iloskutov_pixel7
+! tool/depot/publish $U/bin/arm_v8a/mesa26/<version> \
+!                    $U/bin/arm_v8a/mesa26_egl/<version>
+
+The tool skips archives that have a signature in 'public/' already. The content of
+'public/' is what the URL above serves. The phone's download does not check the TLS
+certificate of the server, trust comes from the signatures.
+
+
+Versions
+~~~~~~~~
+
+Under review, versions stay as they are. Overwrite the archives of the same
+version with 'goa export --depot-overwrite', and remove archives that are no
+longer used from the depot. Goa ignores 'depot_overwrite' in a 'goarc' file.
+
+A published version is final: update the 'version' file before the next change.
+
+
+Signing key
+~~~~~~~~~~~
+
+Archives are signed with a key of its own for the depot user, RSA 4096 without
+expiry. Create a new one only for another depot user, with a passphrase, and keep
+the secret key out of all repositories:
+
+! gpg --quick-generate-key "<name> (Genode depot <user>)" rsa4096 sign never
+! gpg --list-secret-keys --with-fingerprint
+! gpg --armor --export <fingerprint> > pubkey
+! gpg --armor --export-secret-keys <fingerprint> > <offline backup>
+
+Keep the backup and the revocation certificate that GPG wrote to
+'~/.gnupg/openpgp-revocs.d/' offline. A lost key cannot be replaced without new
+images, because the images carry the public key.
+
+
+Test on the phone
+~~~~~~~~~~~~~~~~~
+
+The scenarios are in 'repos/pixel/run' of the tree. They take the driver and the
+base libraries from the tree, and these packages from its depot. Their headers
+describe how to build and run them:
+
+:'mesa_panfrost_pixel': rendering test with 'mesa26_egl'
+
+From the Genode directory, after the exports:
+
+! repos/pixel/tool/device_test mesa_panfrost_pixel 45
