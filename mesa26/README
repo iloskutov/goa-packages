@@ -1,0 +1,17 @@
+Mesa 26.2.6 for the Mali-G710 of the Google Pixel 7
+
+The libraries are Mesa with the gallium drivers panfrost and softpipe, its EGL
+with the platform "genode", and libdrm with a back end for the Gpu session of
+the driver 'panthor_gpu' of the Genode tree, protocol
+'include/gpu/panthor_session.h' of the api archive 'gpu_panthor'.
+
+The EGL platform loads 'mesa26_gpu.lib.so', route this ROM to the back end:
+'mesa26_gpu-panfrost.lib.so' or 'mesa26_gpu-softpipe.lib.so'.
+
+Mesa generates part of its sources at build time, and the libpan shaders of
+panfrost need LLVM, clang, and the SPIR-V translator. So the import runs a meson
+build of Mesa on the host, 'files/generate.sh', which needs these tools, and takes
+the files of 'files/generated.list' into 'src/generated'.
+
+The file lists and the source lists in 'files/mk' were derived from a complete
+meson build, they must be updated with a new version of Mesa.

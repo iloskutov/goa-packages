@@ -1,0 +1,76 @@
+Route mappings, sync-file waits and descriptor duplication to libdrm26
+
+The descriptors of the GPU driver are numbers of the DRM back end of
+libdrm26, not libc descriptors. Mesa 26 version of
+os_mmap.patch, sync_wait.patch and os_dupfd.patch of the stock port; other
+than there, everything that is not a GPU descriptor still reaches the libc.
+
+--- a/src/util/os_mman.h	2026-10-07 23:30:57.089461309 +0200
++++ b/src/util/os_mman.h	2026-10-08 00:19:11.061894425 +0200
+@@ -59,6 +59,22 @@
+ #  define os_munmap(addr, length) \
+              munmap(addr, length)
+ 
++#elif defined(__GENODE__)
++/*
++ * The descriptor of a GPU device is not a libc descriptor on Genode. The
++ * mapping of a buffer object goes to the DRM back end (libdrm26), which
++ * passes every other mapping on to the libc.
++ */
++extern void *drm_mmap(void *addr, size_t length, int prot, int flags, int fd,
++                      off_t offset);
++extern int   drm_munmap(void *addr, size_t length);
++
++#  define os_mmap(addr, length, prot, flags, fd, offset) \
++             drm_mmap(addr, length, prot, flags, fd, offset)
++
++#  define os_munmap(addr, length) \
++             drm_munmap(addr, length)
++
+ #else
+ /* assume large file support exists */
+ #  define os_mmap(addr, length, prot, flags, fd, offset) \
+--- a/src/util/libsync.h	2026-10-07 23:30:57.084461231 +0200
++++ b/src/util/libsync.h	2026-10-08 00:19:11.062517033 +0200
+@@ -118,6 +118,12 @@
+ #endif
+ 
+ 
++#ifdef __GENODE__
++/* a sync file of the GPU driver is no libc descriptor, see libdrm26 */
++extern int drm_poll(struct pollfd *, nfds_t, int);
++#define poll drm_poll
++#endif
++
+ static inline int sync_wait(int fd, int timeout)
+ {
+ 	struct pollfd fds = {0};
+@@ -148,6 +154,10 @@
+ 	return ret;
+ }
+ 
++#ifdef __GENODE__
++#undef poll
++#endif
++
+ static inline int sync_merge(const char *name, int fd1, int fd2)
+ {
+ 	struct sync_merge_data data = {{0}};
+--- a/src/util/os_file.c	2026-10-07 23:30:57.087461278 +0200
++++ b/src/util/os_file.c	2026-10-08 00:19:11.062627518 +0200
+@@ -59,6 +59,15 @@
+ int
+ os_dupfd_cloexec(int fd)
+ {
++#ifdef __GENODE__
++   /*
++    * Descriptors of the GPU driver (device, sync files, dma-bufs) are numbers
++    * handed out by the DRM back end (libdrm26, 10000 and above), not libc
++    * descriptors: they cannot be duplicated and need not be.
++    */
++   if (fd >= 10000)
++      return fd;
++#endif
+    int minfd = 3;
+    int newfd = fcntl(fd, F_DUPFD_CLOEXEC, minfd);
+ 

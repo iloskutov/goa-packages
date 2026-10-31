@@ -1,0 +1,23 @@
+panfrost: add the Mali-G710 to the model table
+
+GPU of the Pixel 7 (Tensor G2): GPU_ID 0xa8620004 = architecture 10.8.6,
+product major 2. Upstream's table has only the G610 (product major 7) for
+architecture 10.8; without an entry the screen creation fails with
+"panfrost: Unsupported model". The parameters are copied from the G610 and
+are an assumption.
+
+--- a/src/panfrost/model/pan_model.c	2026-10-07 23:30:57.009460071 +0200
++++ b/src/panfrost/model/pan_model.c	2026-10-08 00:18:41.509096021 +0200
+@@ -87,6 +87,12 @@
+                                               MODEL_RATES_X(2, 4, 8,  32,  32, 8)),
+    VALHALL_MODEL(PAN_PROD_ID(10, 8, 7), 0, "G610",   "G710", MODEL_ANISO(ALL),  MODEL_TB_SIZES(32768, 16384),
+                                               MODEL_RATES_X(4, 8, 16,  64,  64, 16)),
++   /* Mali-G710 (Pixel 7, Tensor G2: GPU_ID 0xa8620004, arch 10.8.6, product
++    * major 2, 7 shader cores). Not in upstream's table. Tile-buffer sizes and
++    * rates are ASSUMED to be those of the G610 (same architecture 10.8, same
++    * firmware), they are not taken from documentation. */
++   VALHALL_MODEL(PAN_PROD_ID(10, 8, 2), 0, "G710",   "G710", MODEL_ANISO(ALL),  MODEL_TB_SIZES(32768, 16384),
++                                              MODEL_RATES_X(4, 8, 16,  64,  64, 16)),
+    /* var/cvt/sfu rates might not be correct (we haven't found any detailed documentation) */
+    VALHALL_MODEL(PAN_PROD_ID(10, 12, 4), 0, "G310v1",   "G710", MODEL_ANISO(ALL),  MODEL_TB_SIZES(16384,  8192),
+                                               MODEL_RATES_X(2, 2,  8,  16,  16, 4)),

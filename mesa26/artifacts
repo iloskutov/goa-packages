@@ -1,0 +1,5 @@
+mesa26.lib.so
+egl26.lib.so
+libdrm26.lib.so
+mesa26_gpu-panfrost.lib.so
+mesa26_gpu-softpipe.lib.so

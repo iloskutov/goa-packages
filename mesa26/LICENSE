@@ -1,0 +1,3 @@
+Mesa is under the MIT license and others, see lib/mesa26/docs/license.rst of the
+sources. libdrm is under the MIT license. The glue code in files/glue is under
+the licenses in its file headers.

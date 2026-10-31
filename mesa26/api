@@ -1,0 +1,7 @@
+include/EGL:lib/mesa26/include/EGL/
+include/EGL:glue/include/EGL/
+include/GL:lib/mesa26/include/GL/
+include/GLES:lib/mesa26/include/GLES/
+include/GLES2:lib/mesa26/include/GLES2/
+include/GLES3:lib/mesa26/include/GLES3/
+include/KHR:lib/mesa26/include/KHR/

@@ -1,0 +1,65 @@
+Adaptations to Genode's libc (FreeBSD based)
+
+* no futex (umtx): use the mutex / condition fallback
+* no pthread barriers and no per-thread CPU clock (as in the stock port)
+* no anonymous shared memory (shm_open)
+
+--- a/src/util/futex.h	2026-10-07 23:30:57.082461200 +0200
++++ b/src/util/futex.h	2026-10-07 23:35:04.188283062 +0200
+@@ -29,7 +29,7 @@
+ #else
+ #if defined(HAVE_LINUX_FUTEX_H) && defined(__linux__)
+ #define UTIL_FUTEX_SUPPORTED 1
+-#elif defined(__FreeBSD__)
++#elif defined(__FreeBSD__) && !defined(__GENODE__)
+ #define UTIL_FUTEX_SUPPORTED 1
+ #elif defined(__OpenBSD__)
+ #define UTIL_FUTEX_SUPPORTED 1
+--- a/src/util/u_thread.h	2026-10-07 23:30:57.135462020 +0200
++++ b/src/util/u_thread.h	2026-10-07 23:36:47.674698724 +0200
+@@ -116,7 +116,8 @@
+  * util_barrier
+  */
+ 
+-#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__)
++#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__) \
++    && !defined(__GENODE__)
+ 
+ typedef pthread_barrier_t util_barrier;
+ 
+--- a/src/util/u_thread.c	2026-10-07 23:30:57.134462005 +0200
++++ b/src/util/u_thread.c	2026-10-07 23:36:47.674491171 +0200
+@@ -176,7 +176,8 @@
+ int64_t
+ util_thread_get_time_nano(thrd_t thread)
+ {
+-#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__) && !defined(__managarm__)
++#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__) && !defined(__managarm__) \
++    && !defined(__GENODE__)
+    struct timespec ts;
+    clockid_t cid;
+ 
+@@ -196,7 +197,8 @@
+ #endif
+ }
+ 
+-#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__)
++#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__) \
++    && !defined(__GENODE__)
+ 
+ void util_barrier_init(util_barrier *barrier, unsigned count)
+ {
+--- a/src/util/anon_file.c	2026-10-07 23:30:57.059460845 +0200
++++ b/src/util/anon_file.c	2026-10-07 23:36:47.674877618 +0200
+@@ -196,6 +196,11 @@
+    if (!debug_name)
+       debug_name = "mesa-shared";
+    fd = syscall(SYS_memfd_create, debug_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
++#elif defined(__GENODE__)
++   /* no anonymous shared memory in Genode's libc */
++   (void)debug_name;
++   errno = ENOSYS;
++   fd = -1;
+ #elif defined(__FreeBSD__)
+    fd = shm_open(SHM_ANON, O_CREAT | O_RDWR | O_CLOEXEC, 0600);
+ #elif defined(__OpenBSD__)

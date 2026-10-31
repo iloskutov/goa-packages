@@ -1,0 +1,78 @@
+EGL platform "genode"
+
+Adds the platform to EGL's enumeration and name table, calls its
+initialization (glue/egl/platform.c) from the
+DRI2 driver and adds the native window and the back image to the surface.
+Mesa 26 version of what mesa.patch does in the stock port (24.0).
+
+--- a/src/egl/main/egldisplay.h	2026-10-07 23:30:54.317418435 +0200
++++ b/src/egl/main/egldisplay.h	2026-10-07 23:38:16.337067127 +0200
+@@ -54,6 +54,7 @@
+    _EGL_PLATFORM_HAIKU,
+    _EGL_PLATFORM_SURFACELESS,
+    _EGL_PLATFORM_DEVICE,
++   _EGL_PLATFORM_GENODE,
+    _EGL_PLATFORM_WINDOWS,
+ 
+    _EGL_NUM_PLATFORMS,
+--- a/src/egl/main/egldisplay.c	2026-10-07 23:30:54.317418435 +0200
++++ b/src/egl/main/egldisplay.c	2026-10-07 23:38:16.337425413 +0200
+@@ -83,6 +83,7 @@
+    {_EGL_PLATFORM_HAIKU, "haiku"},
+    {_EGL_PLATFORM_SURFACELESS, "surfaceless"},
+    {_EGL_PLATFORM_DEVICE, "device"},
++   {_EGL_PLATFORM_GENODE, "genode"},
+    {_EGL_PLATFORM_WINDOWS, "windows"},
+ };
+ 
+--- a/src/egl/drivers/dri2/egl_dri2.h	2026-10-07 23:30:54.309418311 +0200
++++ b/src/egl/drivers/dri2/egl_dri2.h	2026-10-07 23:38:28.264129321 +0200
+@@ -343,6 +343,13 @@
+    unsigned excess_bo_frames;
+ #endif
+ 
++#ifdef HAVE_GENODE_PLATFORM
++   /* native window (pixel buffer of the application) */
++   struct Genode_egl_window *g_win;
++   /* render target of a hardware driver, copied to 'g_win' at swap */
++   struct dri_image *back_image;
++#endif
++
+ #if defined(HAVE_WAYLAND_PLATFORM) || defined(HAVE_DRM_PLATFORM)
+    struct dri2_egl_buffer {
+ #ifdef HAVE_WAYLAND_PLATFORM
+@@ -573,6 +580,11 @@
+ EGLBoolean
+ dri2_initialize_surfaceless(_EGLDisplay *disp);
+ 
++#ifdef HAVE_GENODE_PLATFORM
++EGLBoolean
++dri2_initialize_genode(_EGLDisplay *disp);
++#endif
++
+ EGLBoolean
+ dri2_initialize_device(_EGLDisplay *disp);
+ static inline void
+--- a/src/egl/drivers/dri2/egl_dri2.c	2026-10-07 23:30:54.309418311 +0200
++++ b/src/egl/drivers/dri2/egl_dri2.c	2026-10-07 23:38:16.339604555 +0200
+@@ -913,6 +913,11 @@
+    case _EGL_PLATFORM_ANDROID:
+       ret = dri2_initialize_android(disp);
+       break;
++#ifdef HAVE_GENODE_PLATFORM
++   case _EGL_PLATFORM_GENODE:
++      ret = dri2_initialize_genode(disp);
++      break;
++#endif
+    default:
+       UNREACHABLE("Callers ensure we cannot get here.");
+       return EGL_FALSE;
+@@ -1006,6 +1011,8 @@
+       break;
+    case _EGL_PLATFORM_DEVICE:
+       break;
++   case _EGL_PLATFORM_GENODE:
++      break;
+    default:
+       UNREACHABLE("Platform teardown is not properly hooked.");
+       break;

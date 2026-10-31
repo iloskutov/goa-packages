@@ -1,0 +1,42 @@
+LICENSE   := MIT
+VERSION   := 26.2.6
+DOWNLOADS := mesa26.archive libdrm.archive
+
+#
+# Only the files the build needs. The lists come from a meson build of Mesa on
+# the host, the generated sources are produced below (see README).
+#
+URL(mesa26)     := https://archive.mesa3d.org/mesa-$(VERSION).tar.xz
+SHA(mesa26)     := b9436b3e1a8be76fbd4823dc884f90596ab7c6ac5e1867a305e66ffccfb31a92
+DIR(mesa26)     := src/lib/mesa26
+TAR_OPT(mesa26) := --strip-components=1 --files-from $(REP_DIR)/files/mesa_files.list
+
+LIBDRM_VERSION  := 2.4.120
+URL(libdrm)     := https://dri.freedesktop.org/libdrm/libdrm-$(LIBDRM_VERSION).tar.xz
+SHA(libdrm)     := 3bf55363f76c7250946441ab51d3a6cc0ae518055c0ff017324ab76cdefb327a
+DIR(libdrm)     := src/lib/libdrm
+TAR_OPT(libdrm) := --strip-components=1 --files-from $(REP_DIR)/files/libdrm_files.list
+
+HASH_INPUT += $(shell find $(REP_DIR)/files $(REP_DIR)/patches -type f)
+
+MESA_PATCHES   := egl_genode genode_drm genode_libc panfrost_g710 panfrost_wb_mmap
+LIBDRM_PATCHES := libdrm_util_match libdrm_xf86drm libdrm_xf86drmMode
+
+PATCHES := $(foreach P,$(MESA_PATCHES) $(LIBDRM_PATCHES),patches/$P.patch)
+
+$(foreach P,$(MESA_PATCHES),$(eval PATCH_OPT(patches/$P.patch) := -p1 -d src/lib/mesa26))
+$(foreach P,$(LIBDRM_PATCHES),$(eval PATCH_OPT(patches/$P.patch) := -p1))
+
+#
+# The generated sources, the glue code, and the build files join the sources
+#
+ifeq ($(filter %print_hash.mk,$(MAKEFILE_LIST)),)
+default: own_files
+endif
+
+own_files: $(DOWNLOADS)
+	@mkdir -p src
+	@$(REP_DIR)/files/generate.sh mesa-$(VERSION).tar.xz \
+	                              $(REP_DIR)/files/generated.list src/generated
+	@cp -r $(REP_DIR)/files/glue $(REP_DIR)/files/mk \
+	       $(REP_DIR)/files/Makefile $(REP_DIR)/files/lib.mk src/

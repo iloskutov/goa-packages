@@ -1,0 +1,2 @@
+# Mesa and libdrm are third-party code
+set warn_strict 0
