@@ -1,0 +1,12 @@
+_/api/base
+_/api/os
+_/api/libc
+_/api/stdcxx
+_/api/gui_session
+_/api/input_session
+_/api/framebuffer_session
+_/api/blit
+_/api/format
+_/api/libpng
+_/api/jpeg
+_/api/mesa26

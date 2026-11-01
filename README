@@ -17,6 +17,7 @@ a Goa project:
 :mesa26:     Mesa with the gallium drivers panfrost and softpipe, its EGL, and
              libdrm with a back end for the driver 'panthor_gpu', see its README.
 :mesa26_egl: Rendering test for Mesa, without a display.
+:glmark2_26: The benchmark glmark2 for this Mesa.
 
 The other directories:
 
@@ -102,12 +103,14 @@ API archives of the tree
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 The projects build against API archives that the tree creates. They need the
-ports 'libc', 'stdcxx', and 'zlib'. From the Genode directory:
+ports 'libc', 'stdcxx', 'zlib', 'libpng', and 'jpeg'. From the Genode directory:
 
-! tool/ports/prepare_port libc stdcxx zlib
+! tool/ports/prepare_port libc stdcxx zlib libpng jpeg
 ! U=iloskutov_pixel7/api
 ! tool/depot/create $U/base $U/so $U/libc $U/posix $U/stdcxx $U/zlib \
-!                   $U/gpu_session $U/vfs_gpu $U/gpu_panthor
+!                   $U/gpu_session $U/vfs_gpu $U/gpu_panthor $U/os $U/format \
+!                   $U/gui_session $U/input_session $U/framebuffer_session \
+!                   $U/blit $U/libpng $U/jpeg
 
 
 Building
@@ -187,7 +190,9 @@ base libraries from the tree, and these packages from its depot. Their headers
 describe how to build and run them:
 
 :'mesa_panfrost_pixel': rendering test with 'mesa26_egl'
+:'glmark2_mali_pixel':  glmark2 on the GPU, shown on the panel
 
 From the Genode directory, after the exports:
 
 ! repos/pixel/tool/device_test mesa_panfrost_pixel 45
+! repos/pixel/tool/device_test glmark2_mali_pixel 125

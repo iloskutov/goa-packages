@@ -1,0 +1,9 @@
+glmark2 for Mesa 26
+
+The benchmark glmark2 2023.01 with the Genode glue of the former repository
+'genode-world', linked against the libraries of 'mesa26'. glmark2 resolves all EGL
+and GL functions at run time; 'shared_library_26.cc' opens the libraries of Mesa
+26 for them. The data of glmark2 is the ROM 'glmark2_assets.tar', which the VFS
+mounts at '/data'.
+
+The scenario 'run/glmark2_mali_pixel' runs it on the Mali-G710.

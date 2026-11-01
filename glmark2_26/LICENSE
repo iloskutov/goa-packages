@@ -1,0 +1,3 @@
+glmark2 is under the GPL version 3, see glmark2/COPYING of the sources. The glue
+code in files/glue is under the licenses in its file headers. Its native-state
+files have no header of their own and are part of the glmark2 port.

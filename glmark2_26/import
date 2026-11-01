@@ -1,0 +1,23 @@
+LICENSE   := GPL3
+VERSION   := 2023.01
+DOWNLOADS := glmark2.git
+
+URL(glmark2) := https://github.com/glmark2/glmark2
+REV(glmark2) := 42e3d8fe3aa88743ef90348138f643f7b04a9237
+DIR(glmark2) := src/glmark2
+
+HASH_INPUT += $(shell find $(REP_DIR)/files $(REP_DIR)/patches -type f)
+
+PATCHES   := patches/glmark2.patch patches/dlopen.patch patches/egl_lib.patch
+PATCH_OPT := -p1 -d src/glmark2
+
+#
+# The Genode glue and the build file join the sources
+#
+ifeq ($(filter %print_hash.mk,$(MAKEFILE_LIST)),)
+default: own_files
+endif
+
+own_files: $(DOWNLOADS)
+	@rm -rf src/glmark2/.git
+	@cp -r $(REP_DIR)/files/glue $(REP_DIR)/files/Makefile src/
