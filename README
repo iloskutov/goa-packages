@@ -22,6 +22,7 @@ a Goa project:
 The other directories:
 
 :depot: The public key and the download location of the depot user.
+:tool:  'publish_depot' regenerates the depot and pushes it.
 
 
 Depot
@@ -153,6 +154,28 @@ directory. This needs the secret key:
 The tool skips archives that have a signature in 'public/' already. The content of
 'public/' is what the URL above serves. The phone's download does not check the TLS
 certificate of the server, trust comes from the signatures.
+
+
+Regenerating and pushing the depot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The script 'tool/publish_depot' does all of the above for the projects it lists in
+'PROJECTS', a new project must be added there. It expects the repository of the
+depot, 'https://github.com/iloskutov/depot-pixel', next to this repository, in
+'../depot-pixel', and needs the secret key and the right to push. Both repositories
+must have no uncommitted changes:
+
+! tool/publish_depot
+
+It creates the API archives of the tree, exports the projects, signs what changed
+into 'public/', and commits and pushes the content of 'public/' to the repository of
+the depot. Archives with unchanged content stay as they are, and a run without any
+change pushes nothing. An archive that is in the repository of the depot but not in
+'public/' is removed from it.
+
+The script replaces archives of the same version, as described below. If it stops
+because the hash of an API recipe is out of date, the API has changed in the tree:
+adjust the hash file of the recipe as the message describes, and run it again.
 
 
 Versions

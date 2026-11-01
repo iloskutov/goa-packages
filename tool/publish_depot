@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+# \brief  Regenerate the depot of this repository and push it
+# \author Ivan Loskutov
+# \date   2026-11-01
+#
+# 1. Create the API archives of the Genode tree that the projects use.
+# 2. Export the projects with Goa, replacing the archives of their versions.
+# 3. Drop the published archives whose content differs from the depot, because
+#    'tool/depot/publish' skips an archive that has a signature.
+# 4. Compress and sign what is missing into the public directory of the tree.
+#    This needs the secret key and may ask for its passphrase.
+# 5. Copy the public directory to the repository of the depot, commit, and push.
+#
+# Archives with unchanged content keep their files, so that a run only adds what
+# really changed to the repository of the depot.
+#
+# usage: tool/publish_depot
+#
+# Environment variables:
+#
+#   GENODE_DIR  the Genode tree (default: ../genode-pub)
+#   DEPOT_REPO  the repository of the depot (default: ../depot-pixel)
+#   PUBLIC_DIR  the public directory (default: <GENODE_DIR>/public)
+#
+
+set -e
+
+die() { echo "Error: $*" >&2; exit 1; }
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+GENODE_DIR=$(cd "${GENODE_DIR:-$ROOT/../genode-pub}" && pwd)
+DEPOT_REPO=$(cd "${DEPOT_REPO:-$ROOT/../depot-pixel}" && pwd)
+PUBLIC_DIR=${PUBLIC_DIR:-$GENODE_DIR/public}
+
+USER_NAME=iloskutov_pixel7
+ARCH=arm_v8a
+
+# in the order of their dependencies
+PROJECTS="mesa26 mesa26_egl glmark2_26"
+
+command -v goa > /dev/null || die "goa is not in the PATH"
+
+[ -z "$(git -C "$ROOT" status --porcelain)" ] ||
+	die "uncommitted changes in $ROOT"
+
+[ -z "$(git -C "$DEPOT_REPO" status --porcelain)" ] ||
+	die "uncommitted changes in $DEPOT_REPO"
+
+
+#
+# API archives of the tree, all but those of the projects themselves
+#
+
+apis=""
+for api in $(cd "$ROOT" && cat $(printf '%s/used_apis ' $PROJECTS) | sed 's#^_/api/##' | sort -u); do
+	case " $PROJECTS " in
+	*" $api "*) ;;
+	*)          apis="$apis $USER_NAME/api/$api" ;;
+	esac
+done
+
+echo "=== API archives"
+"$GENODE_DIR/tool/depot/create" $apis FORCE=1
+
+
+#
+# The projects
+#
+
+archives=""
+for project in $PROJECTS; do
+	echo "=== Export of $project"
+	(cd "$ROOT" && goa export --depot-overwrite -C "$project")
+	archives="$archives $USER_NAME/bin/$ARCH/$project/$(cat "$ROOT/$project/version")"
+done
+
+
+#
+# Published archives that are out of date
+#
+
+echo "=== Comparison with the published archives"
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+dependencies=$("$GENODE_DIR/tool/depot/dependencies" $archives)
+
+for archive in $(echo "$dependencies" | sort -u); do
+
+	published="$PUBLIC_DIR/$archive.tar.xz"
+	[ -f "$published" ] || continue
+
+	rm -rf "${tmp:?}"/*
+	tar xJf "$published" -C "$tmp"
+
+	if ! diff -r -q "$tmp/${archive##*/}" "$GENODE_DIR/depot/$archive" > /dev/null; then
+		echo "changed: $archive"
+		rm -f "$published" "$published.sig"
+	fi
+done
+
+
+#
+# Publication
+#
+
+echo "=== Signing"
+"$GENODE_DIR/tool/depot/publish" $archives PUBLIC_DIR="$PUBLIC_DIR"
+
+rsync -a --delete "$PUBLIC_DIR/$USER_NAME/" "$DEPOT_REPO/$USER_NAME/"
+
+git -C "$DEPOT_REPO" add -A "$USER_NAME"
+
+if git -C "$DEPOT_REPO" diff --cached --quiet; then
+	echo "The depot is up to date, nothing to push."
+	exit 0
+fi
+
+echo "=== Changes"
+git -C "$DEPOT_REPO" diff --cached --stat | tail -n 30
+
+git -C "$DEPOT_REPO" commit -q -m "Depot of $USER_NAME: $PROJECTS"
+git -C "$DEPOT_REPO" push
