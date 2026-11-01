@@ -1,0 +1,11 @@
+USB serial port of the Google Pixel 7
+
+The component 'usb_acm' is a CDC ACM function of the driver 'exynos_usb_gadget' of
+the Genode tree. It is a client of a Usb_gadget session with the label "acm", so the
+driver's config needs a 'function' with this label, and it serves one Terminal
+session. Bytes from the host become terminal input, terminal output goes to the host.
+While the host has not opened the port, the output is dropped, so that a writer never
+blocks on a missing host.
+
+The component 'test-terminal_raw_echo' returns every byte of its Terminal session
+unchanged. The scenario 'usb_acm_pixel' of 'repos/pixel' tests the two together.

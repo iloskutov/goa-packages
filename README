@@ -18,6 +18,7 @@ a Goa project:
              libdrm with a back end for the driver 'panthor_gpu', see its README.
 :mesa26_egl: Rendering test for Mesa, without a display.
 :glmark2_26: The benchmark glmark2 for this Mesa.
+:usb_acm:    USB serial port, a function of the USB gadget driver of 'repos/pixel'.
 
 The other directories:
 
@@ -111,7 +112,8 @@ ports 'libc', 'stdcxx', 'zlib', 'libpng', and 'jpeg'. From the Genode directory:
 ! tool/depot/create $U/base $U/so $U/libc $U/posix $U/stdcxx $U/zlib \
 !                   $U/gpu_session $U/vfs_gpu $U/gpu_panthor $U/os $U/format \
 !                   $U/gui_session $U/input_session $U/framebuffer_session \
-!                   $U/blit $U/libpng $U/jpeg
+!                   $U/blit $U/libpng $U/jpeg $U/terminal_session \
+!                   $U/usb_gadget_session
 
 
 Building
@@ -214,8 +216,10 @@ describe how to build and run them:
 
 :'mesa_panfrost_pixel': rendering test with 'mesa26_egl'
 :'glmark2_mali_pixel':  glmark2 on the GPU, shown on the panel
+:'usb_acm_pixel':       USB serial port with an echo, checked from the PC
 
 From the Genode directory, after the exports:
 
 ! repos/pixel/tool/device_test mesa_panfrost_pixel 45
 ! repos/pixel/tool/device_test glmark2_mali_pixel 125
+! repos/pixel/tool/device_test usb_acm_pixel 90

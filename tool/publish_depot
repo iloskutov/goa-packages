@@ -37,7 +37,7 @@ USER_NAME=iloskutov_pixel7
 ARCH=arm_v8a
 
 # in the order of their dependencies
-PROJECTS="mesa26 mesa26_egl glmark2_26"
+PROJECTS="mesa26 mesa26_egl glmark2_26 usb_acm"
 
 command -v goa > /dev/null || die "goa is not in the PATH"
 
